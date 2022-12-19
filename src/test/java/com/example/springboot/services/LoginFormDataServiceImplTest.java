@@ -13,7 +13,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -64,11 +65,11 @@ class LoginFormDataServiceImplTest {
     }
 
     private static LoginFormData getLoginFormData() {
-        return LoginFormData.builder()
-                .login("login")
-                .email("email")
-                .fio("fio")
-                .password("password")
-                .build();
+        LoginFormData loginFormData = new LoginFormData();
+        loginFormData.setLogin("login");
+        loginFormData.setPassword("password");
+        loginFormData.setEmail("email");
+        loginFormData.setFio("fio");
+        return loginFormData;
     }
 }

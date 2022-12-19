@@ -7,12 +7,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class LoginFormDataConverter {
     public LoginFormData convertToEntity(LoginFormDataDto dto) {
-        return LoginFormData.builder()
-                .login(dto.getLogin())
-                .password(dto.getPassword())
-                .email(dto.getEmail())
-                .fio(dto.getFio())
-                .build();
+        LoginFormData loginFormData = new LoginFormData();
+        loginFormData.setLogin(dto.getLogin());
+        loginFormData.setPassword(dto.getPassword());
+        loginFormData.setEmail(dto.getEmail());
+        loginFormData.setFio(dto.getFio());
+        return loginFormData;
     }
 
     public LoginFormDataDto convertToDto(LoginFormData data) {

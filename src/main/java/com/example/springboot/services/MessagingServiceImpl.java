@@ -1,29 +1,20 @@
 package com.example.springboot.services;
 
+import com.example.springboot.exception.RabbitSendingException;
 import com.example.springboot.outerSystem.OuterSystemAnswer;
 import com.example.springboot.db.entity.LoginFormData;
-import com.rabbitmq.client.Channel;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import static com.example.springboot.config.RabbitConstants.APP_EXCHANGE_NAME;
 import static com.example.springboot.config.RabbitConstants.LOGIN_FORM_DATA_ROUTE_NAME;
@@ -43,16 +34,19 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
     @Override
     public Long send(Message<LoginFormData> data) {
         LoginFormData savedData = loginFormDataService.save(data.getPayload());
-        if (Objects.nonNull(savedData)) {
+        try {
             rabbitTemplate.convertAndSend(APP_EXCHANGE_NAME, LOGIN_FORM_DATA_ROUTE_NAME, new GenericMessage<>(savedData));
+        } catch (Exception e) {
+            String message = String.format("Form was not send. Data with id = %s ", savedData.getId());
+            log.error(message, e);
+            throw new RabbitSendingException("Form was not send.", e);
         }
         return savedData.getId();
     }
 
     @Override
     @RabbitListener(queues = OUTER_SYSTEM_ANSWER_QUEUE_NAME)
-    public Message<LoginFormData> receive(Message<OuterSystemAnswer> message,
-                                          Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws TimeoutException, IOException {
+    public Message<LoginFormData> receive(Message<OuterSystemAnswer> message) throws TimeoutException {
 
         LoginFormData loginFormData = loginFormDataService.findById(message.getPayload().getId());
 
@@ -61,15 +55,21 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
             throw new TimeoutException("Timeout!");
         }
 
-        sendMailer.sendMail(loginFormData.getEmail(), message.getPayload().getMessageType() + " " + loginFormData.getId());
-
         if (shouldSleep()) {
             sleep();
         }
-        //Подтверждение отправки сообщения
-        channel.basicAck(tag, false);
+
+        sendMailer.sendMail(loginFormData.getEmail(), message.getPayload().getMessageType().toString());
 
         return new GenericMessage<>(loginFormData);
+    }
+
+    @Override
+    @RabbitListener(queues = OUTER_SYSTEM_ANSWER_DLQ_NAME)
+    public void processFailedMessages(Message<OuterSystemAnswer> message) throws TimeoutException {
+        log.error("Received failed message: {}", message.toString());
+        LoginFormData loginFormData = loginFormDataService.findById(message.getPayload().getId());
+        sendMailer.sendMail(loginFormData.getEmail(), "Form was not send.");
     }
 
 //    @Override
@@ -85,13 +85,6 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
 //        invokeData.forEach(data -> tempStore.remove(data.getId()));
 //        return invokeData.stream().map(GenericMessage::new).collect(Collectors.toList());
 //    }
-
-    //Если необходимо отправлять ошибочные сообщения в мертвую очередь,
-    // в application.properties необходимо закомментировать 25,26 строки
-    @RabbitListener(queues = OUTER_SYSTEM_ANSWER_DLQ_NAME)
-    public void processFailedMessages(Message<OuterSystemAnswer> message) {
-        log.info("Received failed message: {}", message.toString());
-    }
 
     @SneakyThrows
     private static void sleep() {

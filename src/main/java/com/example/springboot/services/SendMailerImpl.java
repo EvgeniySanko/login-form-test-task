@@ -18,21 +18,29 @@ public class SendMailerImpl implements SendMailer {
     private final JavaMailSender mailSender;
 
     @Override
-    public void sendMail(String toAddress, String messageBody) throws TimeoutException {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("from@from.from");
-        message.setTo(toAddress);
-        message.setSubject("Login form");
-        message.setText(messageBody);
-        mailSender.send(message);
+    public void sendMail(String toAddress, String messageBody) {
+        sendMessage(toAddress, messageBody);
+    }
 
-        if(shouldThrowTimeout()) {
-            sleep();
-            throw new TimeoutException("Timeout!");
-        }
+    private void sendMessage(String toAddress, String messageBody) {
+        try {
+            if(shouldThrowTimeout()) {
+                sleep();
+                throw new TimeoutException("Timeout!");
+            }
 
-        if(shouldSleep()) {
-            sleep();
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("from@from.from");
+            message.setTo(toAddress);
+            message.setSubject("Login form");
+            message.setText(messageBody);
+            mailSender.send(message);
+
+            if(shouldSleep()) {
+                sleep();
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
 
         log.info("Message sent to {}, body {}.", toAddress, messageBody);

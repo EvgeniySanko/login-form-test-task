@@ -114,7 +114,7 @@ public class ForkJoinReceiveData extends RecursiveTask<List<LoginFormData>> {
 
     @SneakyThrows
     private static void sleep() {
-        Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+        Thread.sleep(TimeUnit.MINUTES.toMillis(1));
     }
 
     private static boolean shouldSleep() {
