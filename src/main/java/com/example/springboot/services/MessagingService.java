@@ -3,7 +3,6 @@ package com.example.springboot.services;
 import com.example.springboot.outerSystem.OuterSystemAnswer;
 import org.springframework.messaging.Message;
 
-import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 public interface MessagingService<T, A> {
@@ -19,17 +18,14 @@ public interface MessagingService<T, A> {
      * @param data - сообщение для обработки
      * @return сообщение
      * @throws TimeoutException
-     * @throws IOException
      */
     Message<T> receive(Message<A> data) throws TimeoutException;
 
     /**
      * Обработка сообщения из мертвой очереди
      * @param message - сообщение для обработки
-     * @throws TimeoutException
-     * @throws IOException
      */
-    void processFailedMessages(Message<OuterSystemAnswer> message) throws TimeoutException;
+    void processFailedMessages(Message<OuterSystemAnswer> message);
 
     /**
      * Пытался собирать сообщения, чтобы в дальнейшем разбивать на задачи, в полном объеме реализовать не получилось,
@@ -41,7 +37,6 @@ public interface MessagingService<T, A> {
      * @param tag - порядковый номер amqp_deliveryTag
      * @return сообщение
      * @throws TimeoutException
-     * @throws IOException
      */
 //    List<Message<LoginFormData>> receive(Message<A> data, Channel channel, long tag) throws TimeoutException;
 }

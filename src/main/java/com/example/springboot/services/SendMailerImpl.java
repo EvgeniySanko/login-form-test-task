@@ -22,6 +22,9 @@ public class SendMailerImpl implements SendMailer {
         sendMessage(toAddress, messageBody);
     }
 
+    //В случае возникновения ошибок при отправке сообщения пользователю на email, ошибка логируется
+    //Чтобы уведомлять пользователя об ошибке, возможно, стоило добавить в БД сохранение неотправленных сообщений и пробовать их пересылать неким джобом,
+    //либо также использовать rabbit, но по заданию messaging решение используется только в работе с внешней системой
     private void sendMessage(String toAddress, String messageBody) {
         try {
             if(shouldThrowTimeout()) {

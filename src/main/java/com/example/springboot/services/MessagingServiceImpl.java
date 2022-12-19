@@ -37,6 +37,8 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
         try {
             rabbitTemplate.convertAndSend(APP_EXCHANGE_NAME, LOGIN_FORM_DATA_ROUTE_NAME, new GenericMessage<>(savedData));
         } catch (Exception e) {
+            //В случае неуспешной отправки, ошибка будет обработана GlobalControllerExceptionHandler,
+            // таким образом пользователь будет уведомлен о неуспешной отправке
             String message = String.format("Form was not send. Data with id = %s ", savedData.getId());
             log.error(message, e);
             throw new RabbitSendingException("Form was not send.", e);
@@ -44,6 +46,11 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
         return savedData.getId();
     }
 
+    //При возникновении ошибок во время обработки сообщения,
+    // сообщение будет переотправлено на обработку еще некоторое количество раз в зависимости от значения,
+    // указанного в application.properties (spring.rabbitmq.listener.simple.retry.max-attempts), на данный момент 3 раза
+    // и интервалом между повторами (spring.rabbitmq.listener.simple.retry.initial-interval), на данный момент 120 сек
+    //В случае, если во время последнего повтора отправки возникает exception, сообщение будет отправлено в мертвую очередь OUTER_SYSTEM_ANSWER_DLQ_NAME
     @Override
     @RabbitListener(queues = OUTER_SYSTEM_ANSWER_QUEUE_NAME)
     public Message<LoginFormData> receive(Message<OuterSystemAnswer> message) throws TimeoutException {
@@ -66,7 +73,7 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
 
     @Override
     @RabbitListener(queues = OUTER_SYSTEM_ANSWER_DLQ_NAME)
-    public void processFailedMessages(Message<OuterSystemAnswer> message) throws TimeoutException {
+    public void processFailedMessages(Message<OuterSystemAnswer> message) {
         log.error("Received failed message: {}", message.toString());
         LoginFormData loginFormData = loginFormDataService.findById(message.getPayload().getId());
         sendMailer.sendMail(loginFormData.getEmail(), "Form was not send.");
