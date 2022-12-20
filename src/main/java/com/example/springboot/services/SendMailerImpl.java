@@ -42,11 +42,11 @@ public class SendMailerImpl implements SendMailer {
             if(shouldSleep()) {
                 sleep();
             }
+            log.info("Message sent to {}, body {}.", toAddress, messageBody);
+
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-
-        log.info("Message sent to {}, body {}.", toAddress, messageBody);
     }
 
     @SneakyThrows
