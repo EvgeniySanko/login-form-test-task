@@ -37,7 +37,7 @@ public class MessagingServiceImpl implements MessagingService<LoginFormData, Out
         try {
             rabbitTemplate.convertAndSend(APP_EXCHANGE_NAME, LOGIN_FORM_DATA_ROUTE_NAME, new GenericMessage<>(savedData));
         } catch (Exception e) {
-            //В случае неуспешной отправки, ошибка будет обработана GlobalControllerExceptionHandler,
+            //В случае неуспешной отправки, ошибка будет обработана на уровне контроллера,
             // таким образом пользователь будет уведомлен о неуспешной отправке
             String message = String.format("Form was not send. Data with id = %s ", savedData.getId());
             log.error(message, e);
